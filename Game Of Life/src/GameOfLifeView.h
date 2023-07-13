@@ -138,6 +138,9 @@ private:
 	glm::vec2 zoom_offset = {0.0f,0.0f};
 	GameTime game_timeime;
 public:
+	float GetCellSize() const {
+		return cell_size;
+	}
 	double GetTickTimeout() const {
 		return tick_timeout;
 	}
@@ -182,6 +185,17 @@ public:
 			return true;
 		}
 		return false;
+	}
+	void ToggleCell(const GameOfLife::Cell cell) {
+		if(game_of_life.alive_cells.count(cell)) {
+			game_of_life.alive_cells.erase(cell);
+		} else {
+			game_of_life.alive_cells.insert(cell);
+		}
+		remapCellsVBO();
+	}
+	bool ContainsCell(const GameOfLife::Cell cell) const {
+		return game_of_life.alive_cells.count(cell)>0;
 	}
 	void SetCells(const std::vector<GameOfLife::Cell>& cells) {
 		game_of_life.alive_cells = {cells.begin(),cells.end()};

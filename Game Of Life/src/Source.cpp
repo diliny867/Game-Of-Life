@@ -18,6 +18,7 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods);
+void processInput(GLFWwindow* window);
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -125,13 +126,14 @@ int main() {
     std::vector<GameOfLife::Cell> startingCells = {{0,0},{1,1},{2,1},{2,0},{2,-1}};
     gameOfLifeView.SetCells(startingCells);
 
-    std::cout<<"Press SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\n";
+    std::cout<<"CONTROLS:\nHold and drag RIGHT MOUSE BUTTON to move canvas\nPress or drag LEFT MOUSE BUTTON to toggle a cell\nPress SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\n";
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT /*| GL_STENCIL_BUFFER_BIT*/);
 
         Time::Update();
+        processInput(window);
 
         gameOfLifeView.Draw(cellShader,canvasLineShader);
         //gameOfLifeView.Draw(cellShader,canvasShader);
@@ -149,6 +151,27 @@ void printFPS() {
     std::cout << 1/Time::deltaTime << std::endl;
 }
 
+bool changingAliveCells = false;
+std::unordered_set<GameOfLife::Cell,GameOfLife::Cell::Hash,GameOfLife::Cell::Equal> changedCells;
+void processInput(GLFWwindow* window) {
+    if(mouse.leftPressed) {
+
+	    const glm::vec2 screenSize = glm::vec2(SCR_WIDTH,SCR_HEIGHT);
+	    const glm::vec2 zoomOffset = glm::vec2(glm::vec2(SCR_WIDTH,SCR_HEIGHT)/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
+        glm::ivec2 cellPos = glm::floor((-gameOfLifeView.offset-zoomOffset)/gameOfLifeView.GetCellSize()+mouse.pos/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
+        GameOfLife::Cell cell = GameOfLife::Cell(cellPos.x,cellPos.y);
+
+        if(changedCells.count(cell)==0){
+            if(changingAliveCells == gameOfLifeView.ContainsCell(cell)) {
+                gameOfLifeView.ToggleCell(cell);
+            }
+        }
+        changedCells.insert(cell);
+    }else {
+        changedCells.clear();
+    }
+}
+
 void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods) {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window,true);
@@ -161,6 +184,10 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods) {
     }
     if(key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
         gameOfLifeView.SpeedDownTicks();
+    }
+    if(key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
+        gameOfLifeView.SetZoomFactor(1.0f);
+        shaders_callback();
     }
 }
 
@@ -176,7 +203,7 @@ void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
 
     glm::vec2 mouseDelta = glm::vec2(xposIn,yposIn)-mouse.pos;
 
-    if(mouse.leftPressed){
+    if(mouse.rightPressed){
         gameOfLifeView.offset+= mouseDelta/gameOfLifeView.GetZoomFactor();
     }
 
@@ -187,6 +214,10 @@ void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
     if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         mouse.leftPressed = true;
+
+        glm::ivec2 cellPos = glm::floor((mouse.pos-gameOfLifeView.offset)/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
+        GameOfLife::Cell cell = GameOfLife::Cell(cellPos.x,cellPos.y);
+        changingAliveCells = gameOfLifeView.ContainsCell(cell);
     }
     if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
         mouse.leftPressed = false;
@@ -207,7 +238,7 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 void framebuffer_size_callback(GLFWwindow* window,int width,int height) {
     SCR_WIDTH = width;
     SCR_HEIGHT = height;
+    gameOfLifeView.SetViewpointSize(SCR_WIDTH,SCR_HEIGHT);
     glViewport(0,0,width,height); //0,0 - left bottom
     shaders_callback();
-    gameOfLifeView.SetViewpointSize(SCR_WIDTH,SCR_HEIGHT);
 }
