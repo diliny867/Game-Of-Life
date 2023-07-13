@@ -126,7 +126,7 @@ int main() {
     std::vector<GameOfLife::Cell> startingCells = {{0,0},{1,1},{2,1},{2,0},{2,-1}};
     gameOfLifeView.SetCells(startingCells);
 
-    std::cout<<"CONTROLS:\nHold and drag RIGHT MOUSE BUTTON to move canvas\nPress or drag LEFT MOUSE BUTTON to toggle a cell\nPress SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\n";
+    std::cout<<"CONTROLS:\nHold and drag RIGHT MOUSE BUTTON to move canvas\nPress or drag LEFT MOUSE BUTTON to toggle a cell\nScroll MOUSE WHEEL to zoom\nPress SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\n";
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -215,7 +215,9 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
         mouse.leftPressed = true;
 
-        glm::ivec2 cellPos = glm::floor((mouse.pos-gameOfLifeView.offset)/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
+        const glm::vec2 screenSize = glm::vec2(SCR_WIDTH,SCR_HEIGHT);
+        const glm::vec2 zoomOffset = glm::vec2(glm::vec2(SCR_WIDTH,SCR_HEIGHT)/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
+        glm::ivec2 cellPos = glm::floor((-gameOfLifeView.offset-zoomOffset)/gameOfLifeView.GetCellSize()+mouse.pos/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
         GameOfLife::Cell cell = GameOfLife::Cell(cellPos.x,cellPos.y);
         changingAliveCells = gameOfLifeView.ContainsCell(cell);
     }
