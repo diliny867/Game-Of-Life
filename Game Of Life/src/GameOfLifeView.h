@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <stack>
 
 #include "GameOfLife.h"
 
@@ -19,7 +20,7 @@ enum GameState {
 	PAUSED
 };
 
-class GameTime {
+class GameTime { //if im not lazy ill change snake_case to camelCase
 private:
 	double total_time = 0;
 	double pause_start_time = 0;
@@ -100,6 +101,7 @@ private:
 	void tick() {
 		//std::cout<<"GAME: Tick "<<tick_count<<" at "<<std::fixed<<std::setprecision(2)<<Time::time<<" sec\n";
 		tick_count+=1;
+		previous_cell_states.push(game_of_life.alive_cells);
 		game_of_life.Tick();
 		remapCellsVBO();
 	}
@@ -137,6 +139,9 @@ private:
 	float min_zoom = 0.2f;
 	glm::vec2 zoom_offset = {0.0f,0.0f};
 	GameTime game_timeime;
+
+	//std::size_t max_cell_states_stored = 200;
+	std::stack<std::unordered_set<GameOfLife::Cell,GameOfLife::Cell::Hash,GameOfLife::Cell::Equal>> previous_cell_states; //as much as i want to use stack i would need to switch to something else, to implement maximum for stored cell states
 public:
 	float GetCellSize() const {
 		return cell_size;
@@ -153,6 +158,14 @@ public:
 	void SpeedDownTicks() {
 		tick_timeout_multiplier+=tick_timeout_multiplier_inc;
 
+	}
+	void AdvanceTick() {
+		tick();
+	}
+	void RevertTick() {
+		if(previous_cell_states.empty()){ return; }
+		SetCells(previous_cell_states.top());
+		previous_cell_states.pop();
 	}
 	glm::vec2 offset = {0.0f,0.0f};
 	void SetZoomFactor(const float zoom) {
@@ -199,6 +212,10 @@ public:
 	}
 	void SetCells(const std::vector<GameOfLife::Cell>& cells) {
 		game_of_life.alive_cells = {cells.begin(),cells.end()};
+		remapCellsVBO();
+	}
+	void SetCells(const std::unordered_set<GameOfLife::Cell,GameOfLife::Cell::Hash,GameOfLife::Cell::Equal>& cells) {
+		game_of_life.alive_cells = cells;
 		remapCellsVBO();
 	}
 	void Init() {

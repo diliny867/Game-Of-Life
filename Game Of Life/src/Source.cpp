@@ -77,7 +77,7 @@ int main() {
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    //glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST); //with depth test somehow some canvas lines become lighter than they should be
     //glDepthFunc(GL_LESS);
 	glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
@@ -126,7 +126,7 @@ int main() {
     std::vector<GameOfLife::Cell> startingCells = {{0,0},{1,1},{2,1},{2,0},{2,-1}};
     gameOfLifeView.SetCells(startingCells);
 
-    std::cout<<"CONTROLS:\nHold and drag RIGHT MOUSE BUTTON to move canvas\nPress or drag LEFT MOUSE BUTTON to toggle a cell\nScroll MOUSE WHEEL to zoom\nPress SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\n";
+    std::cout<<"CONTROLS:\nHold and drag RIGHT MOUSE BUTTON to move canvas\nPress or drag LEFT MOUSE BUTTON to toggle a cell\nScroll MOUSE WHEEL to zoom\nPress SPACE to pause\nPress UP to speed up ticks\nPress DOWN to speed down ticks\nPress RIGHT to advance ticks\nPress LEFT to revert ticks\n";
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -152,23 +152,16 @@ void printFPS() {
 }
 
 bool changingAliveCells = false;
-std::unordered_set<GameOfLife::Cell,GameOfLife::Cell::Hash,GameOfLife::Cell::Equal> changedCells;
 void processInput(GLFWwindow* window) {
     if(mouse.leftPressed) {
-
 	    const glm::vec2 screenSize = glm::vec2(SCR_WIDTH,SCR_HEIGHT);
-	    const glm::vec2 zoomOffset = glm::vec2(glm::vec2(SCR_WIDTH,SCR_HEIGHT)/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
+	    const glm::vec2 zoomOffset = glm::vec2(screenSize/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
         glm::ivec2 cellPos = glm::floor((-gameOfLifeView.offset-zoomOffset)/gameOfLifeView.GetCellSize()+mouse.pos/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
         GameOfLife::Cell cell = GameOfLife::Cell(cellPos.x,cellPos.y);
 
-        if(changedCells.count(cell)==0){
-            if(changingAliveCells == gameOfLifeView.ContainsCell(cell)) {
-                gameOfLifeView.ToggleCell(cell);
-            }
-        }
-        changedCells.insert(cell);
-    }else {
-        changedCells.clear();
+    	if(changingAliveCells == gameOfLifeView.ContainsCell(cell)) {
+    		gameOfLifeView.ToggleCell(cell);
+    	}
     }
 }
 
@@ -188,6 +181,12 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mods) {
     if(key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
         gameOfLifeView.SetZoomFactor(1.0f);
         shaders_callback();
+    }
+    if(key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        gameOfLifeView.AdvanceTick();
+    }
+    if(key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        gameOfLifeView.RevertTick();
     }
 }
 
@@ -216,7 +215,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         mouse.leftPressed = true;
 
         const glm::vec2 screenSize = glm::vec2(SCR_WIDTH,SCR_HEIGHT);
-        const glm::vec2 zoomOffset = glm::vec2(glm::vec2(SCR_WIDTH,SCR_HEIGHT)/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
+        const glm::vec2 zoomOffset = glm::vec2(screenSize/gameOfLifeView.GetZoomFactor()-screenSize)/2.0f;
         glm::ivec2 cellPos = glm::floor((-gameOfLifeView.offset-zoomOffset)/gameOfLifeView.GetCellSize()+mouse.pos/gameOfLifeView.GetCellSize()/gameOfLifeView.GetZoomFactor());
         GameOfLife::Cell cell = GameOfLife::Cell(cellPos.x,cellPos.y);
         changingAliveCells = gameOfLifeView.ContainsCell(cell);
